@@ -67,6 +67,11 @@ def show_main_content(
     if 'extracted_info' not in st.session_state:
         st.session_state.extracted_info = None
     
+    # Display doctor information in a persistent container if available
+    if 'doctor' in st.session_state and st.session_state.doctor:
+        show_doctor_info(st.session_state.doctor)
+        st.markdown("---")
+    
     # Display chat messages
     for message in st.session_state.messages:
         display_chat_message(message["role"], message["content"])

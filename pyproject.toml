@@ -20,6 +20,8 @@ streamlit = "^1.47.0"
 numpy = "^2.3.1"
 python-dotenv = "^1.0.0"
 dataclasses-json = "^0.6.7"
+streamlit-folium = "^0.25.0"
+folium = "^0.20.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0"]
