@@ -291,6 +291,12 @@ def show_doctor_info(doctor: Optional[Doctor], is_selected: bool = False) -> Non
                 if phone:
                     st.markdown(f"📞 **Phone:** {phone}")
                 
+                # Gender
+                gender = getattr(doctor, 'gender', None)
+                if gender:
+                    gender_emoji = "👩‍⚕️" if gender.lower() == 'female' else "👨‍⚕️" if gender.lower() == 'male' else "👤"
+                    st.markdown(f"{gender_emoji} **Gender:** {gender.capitalize()}")
+                
                 # Languages
                 languages = getattr(doctor, 'languages', None)
                 if languages:

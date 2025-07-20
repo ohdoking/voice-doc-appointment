@@ -80,18 +80,16 @@ def show_main_content(
     
     # We'll show the selected doctor in the chat history instead of a persistent container
     
-    # Display chat messages, showing the most recent doctor first
+    # Display chat messages, ensuring the most recent doctor is shown last
     for message in st.session_state.messages:
-        # Skip showing the doctor in the persistent container if it's already in chat
-        if message["role"] == "doctor_card" and 'doctor' in st.session_state and st.session_state.doctor == message["content"]:
-            continue
-        display_chat_message(message["role"], message["content"])
+        # Only show non-doctor messages here
+        if message["role"] != "doctor_card":
+            display_chat_message(message["role"], message["content"])
     
-    # Show the current doctor at the end of the chat if available
-    if 'doctor' in st.session_state and st.session_state.doctor:
-        # Only show if not already the last message
-        if not st.session_state.messages or st.session_state.messages[-1]["content"] != st.session_state.doctor:
-            display_chat_message("doctor_card", st.session_state.doctor)
+    # Show the current doctor last in the chat if available
+    if 'doctors' in st.session_state and st.session_state.doctors and st.session_state.current_doctor_index < len(st.session_state.doctors):
+        current_doctor = st.session_state.doctors[st.session_state.current_doctor_index]
+        display_chat_message("doctor_card", current_doctor)
     
     # Chat input area
     if st.button("🎤 Start Voice Recording", type="primary", use_container_width=True):
@@ -154,14 +152,13 @@ def show_main_content(
                             # # Show doctor info card
                             # show_doctor_info(current_doctor)
                             
-                            # Add doctor card to chat history
-                            print(st.session_state.current_doctor_index)
-                            print(current_doctor)
-
+                            # Update the current doctor in session state
+                            st.session_state.current_doctor = current_doctor
+                            
+                            # Add a message indicating we found a doctor
                             st.session_state.messages.append({
-                                "role": "doctor_card", 
-                                "content": current_doctor,
-                                "doctor_index": st.session_state.current_doctor_index
+                                "role": "assistant",
+                                "content": f"I found a doctor that matches your criteria. Here's the information:"
                             })
                             
                             # Set flag to listen for user's choice

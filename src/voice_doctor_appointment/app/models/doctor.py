@@ -10,6 +10,7 @@ class Doctor:
     location: Dict[str, Any]
     link: str
     specialty: Optional[str] = None
+    gender: Optional[str] = None
     profile_image_url: Optional[str] = None
     languages: list[str] = field(default_factory=list)
     
@@ -30,6 +31,7 @@ class Doctor:
             'id': self.id,
             'name': self.name,
             'specialty': self.specialty,
+            'gender': self.gender,
             'location': self.location,
             'link': self.link,
             'profile_image_url': self.profile_image_url,
@@ -43,6 +45,7 @@ class Doctor:
             id=str(data.get('id', '')),
             name=data.get('name', 'Doctor'),
             specialty=data.get('specialty', ''),
+            gender=data.get('gender'),
             location=data.get('location', {}),
             link=data.get('link', ''),
             profile_image_url=data.get('profile_image_url'),
