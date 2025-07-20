@@ -73,15 +73,25 @@ def show_main_content(
         st.session_state.transcript = ""
     if 'extracted_info' not in st.session_state:
         st.session_state.extracted_info = None
+    if 'doctors' not in st.session_state:
+        st.session_state.doctors = []
+    if 'current_doctor_index' not in st.session_state:
+        st.session_state.current_doctor_index = 0
     
-    # Display the selected doctor information in a persistent container if available
-    if 'doctor' in st.session_state and st.session_state.doctor:
-        show_doctor_info(st.session_state.doctor, is_selected=True)
-        st.markdown("---")
+    # We'll show the selected doctor in the chat history instead of a persistent container
     
-    # Display chat messages
+    # Display chat messages, showing the most recent doctor first
     for message in st.session_state.messages:
+        # Skip showing the doctor in the persistent container if it's already in chat
+        if message["role"] == "doctor_card" and 'doctor' in st.session_state and st.session_state.doctor == message["content"]:
+            continue
         display_chat_message(message["role"], message["content"])
+    
+    # Show the current doctor at the end of the chat if available
+    if 'doctor' in st.session_state and st.session_state.doctor:
+        # Only show if not already the last message
+        if not st.session_state.messages or st.session_state.messages[-1]["content"] != st.session_state.doctor:
+            display_chat_message("doctor_card", st.session_state.doctor)
     
     # Chat input area
     if st.button("🎤 Start Voice Recording", type="primary", use_container_width=True):
@@ -90,14 +100,14 @@ def show_main_content(
         
         try:
             # Record voice input
-            # st.session_state.transcript = voice_service.ask_voice(
-            #     "Please describe your symptoms and tell me your location.",
-            #     duration=recording_duration
-            # )
+            st.session_state.transcript = voice_service.ask_voice(
+                "Please describe your symptoms and tell me your location.",
+                duration=recording_duration
+            )
 
-            st.session_state.transcript = """
-            i have allergie from last night, i live in berlin pankow, i only can speak english. and i have public insurance. and i want male doctor.
-            """
+            # st.session_state.transcript = """
+            # i have allergie from last night, i live in berlin pankow, i only can speak english. and i have public insurance. and i want male doctor.
+            # """
             
             if st.session_state.transcript:
                 # Add user message to chat
@@ -108,7 +118,7 @@ def show_main_content(
                     st.session_state.extracted_info = extract_doctor_info(st.session_state.transcript)
                     
                     if st.session_state.get('Initialize', True):
-                        if st.session_state.extracted_info:
+                        if st.session_state.extracted_info and st.session_state.extracted_info.get('location'):
                             # Find multiple doctors based on the extracted information (max 5)
                             st.session_state.doctors = find_doctors(
                                 doctor_service,
@@ -145,6 +155,9 @@ def show_main_content(
                             # show_doctor_info(current_doctor)
                             
                             # Add doctor card to chat history
+                            print(st.session_state.current_doctor_index)
+                            print(current_doctor)
+
                             st.session_state.messages.append({
                                 "role": "doctor_card", 
                                 "content": current_doctor,
@@ -157,6 +170,9 @@ def show_main_content(
                         else:
                             response = "I couldn't find any matching doctors. Could you provide more details about what you're looking for?"
                             st.session_state.messages.append({"role": "assistant", "content": response})
+                    else:
+                        error_msg = "I couldn't determine your location. Could you please specify a location? For example, 'I'm in Berlin'"
+                        st.session_state.messages.append({"role": "assistant", "content": error_msg})
                     
                     # Handle doctor choice if we're waiting for it
                     if st.session_state.get('awaiting_doctor_choice'):
