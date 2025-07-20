@@ -57,6 +57,18 @@ class DoctorService:
                 if cloudinary_id:
                     doc["profile_image_url"] = f"https://media.doctolib.com/image/upload/q_auto:eco,f_auto,dpr_2/w_62,h_62,c_fill,g_face/{cloudinary_id}"
                 
+                # Clean and set specialty, ensuring no newlines or extra whitespace
+                if isinstance(specialty, str):
+                    doc["specialty"] = specialty.strip()
+                else:
+                    doc["specialty"] = str(specialty).strip() if specialty else ""
+                
+                # Clean other string fields that might contain newlines
+                for field in ['name', 'address', 'description']:
+                    if field in doc and doc[field]:
+                        if isinstance(doc[field], str):
+                            doc[field] = doc[field].replace('\n', ' ').strip()
+                
                 processed_doctors.append(Doctor.from_dict(doc))
                 
             return processed_doctors

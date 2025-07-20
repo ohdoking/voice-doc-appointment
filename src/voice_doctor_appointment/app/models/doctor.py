@@ -7,9 +7,9 @@ class Doctor:
     """Represents a doctor's information."""
     id: str
     name: str
-    specialty: str
     location: Dict[str, Any]
     link: str
+    specialty: Optional[str] = None
     profile_image_url: Optional[str] = None
     languages: list[str] = field(default_factory=list)
     

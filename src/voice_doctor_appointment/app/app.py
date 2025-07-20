@@ -1,8 +1,8 @@
 """
-Doctor Booking Assistant - Streamlit Application
+MediMatch Voice - Streamlit Application
 
-This is the main entry point for the Doctor Booking Assistant application.
-It provides a voice-enabled interface for finding and booking doctors.
+This is the main entry point for the MediMatch Voice application.
+It provides a voice-enabled interface for finding and booking healthcare providers.
 """
 import os
 import sys
@@ -27,14 +27,14 @@ from voice_doctor_appointment.app.services.doctor_service import DoctorService
 load_dotenv(project_root / '.env')
 
 def main():
-    """Main entry point for the Doctor Booking Assistant application."""
+    """Main entry point for the MediMatch Voice application."""
     # Initialize services
     voice_service = VoiceService()
     doctor_service = DoctorService()
     
     # Configure page settings
     st.set_page_config(
-        page_title="Doctor Booking Assistant",
+        page_title="MediMatch Voice",
         page_icon="🏥",
         layout="wide",
         initial_sidebar_state="expanded"

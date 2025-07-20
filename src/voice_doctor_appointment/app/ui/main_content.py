@@ -1,12 +1,13 @@
 """Main content component for the Doctor Booking Assistant."""
 import streamlit as st
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import json
 import sys
 from pathlib import Path
 import os
 import openai
 from dotenv import load_dotenv
+import time
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent.parent.parent
@@ -79,7 +80,7 @@ def show_main_content(
     # Chat input area
     if st.button("🎤 Start Voice Recording", type="primary", use_container_width=True):
         st.session_state.recording = True
-        display_chat_message("user", "(Recording...)")
+        # display_chat_message("user", "(Recording...)")
         
         try:
             # Record voice input
@@ -87,6 +88,10 @@ def show_main_content(
                 "Please describe your symptoms and tell me your location.",
                 duration=recording_duration
             )
+
+            # st.session_state.transcript = """
+            # i have allergie from last night, i live in berlin pankow, i only can speak english. and i have public insurance. and i want male doctor.
+            # """
             
             if st.session_state.transcript:
                 # Add user message to chat
@@ -96,40 +101,114 @@ def show_main_content(
                 with st.spinner("Helping you find the right doctor and booking an appointment..."):
                     st.session_state.extracted_info = extract_doctor_info(st.session_state.transcript)
                     
-                    if st.session_state.extracted_info:
-                        # Find a doctor based on the extracted information
-                        st.session_state.doctor = find_doctor(
-                            doctor_service,
-                            st.session_state.extracted_info,
-                            debug_mode
-                        )
-                        
-                        # Add assistant's response to chat
-                        if st.session_state.doctor:
-                            doctor_dict = st.session_state.doctor.to_dict() if hasattr(st.session_state.doctor, 'to_dict') else st.session_state.doctor
-                            
-                            # First message with doctor details
-                            doctor_details = (
-                                f"I found a {st.session_state.extracted_info.get('recommended_specialty', 'doctor')} "
-                                f"in {st.session_state.extracted_info.get('location', 'your area')}.\n\n"
-                                f"**{doctor_dict.get('name', 'Doctor')}**\n"
-                                f"📍 {doctor_dict.get('location', {}).get('address', 'Address not available')}\n"
-                                f"📞 {doctor_dict.get('phone', 'Phone not available')}"
+                    if st.session_state.get('Initialize', True):
+                        if st.session_state.extracted_info:
+                            # Find multiple doctors based on the extracted information (max 5)
+                            st.session_state.doctors = find_doctors(
+                                doctor_service,
+                                st.session_state.extracted_info,
+                                debug_mode
                             )
                             
-                            # Add doctor details to chat
-                            st.session_state.messages.append({"role": "assistant", "content": doctor_details})
+                        # Initialize doctor index if not set
+                        if 'current_doctor_index' not in st.session_state:
+                            st.session_state.current_doctor_index = 0
                             
-                            # Set flag to ask for booking confirmation in the next interaction
-                            st.session_state.ask_for_booking_confirmation = True
+                        # Check if we found any doctors
+                        if st.session_state.doctors:
+                            # Get current doctor
+                        
+                            current_doctor = st.session_state.doctors[st.session_state.current_doctor_index]
+                            doctor_dict = current_doctor.to_dict() if hasattr(current_doctor, 'to_dict') else current_doctor
+                            
+                            # First message with doctor details
+                            # doctor_details = (
+                            #     f"I found a {st.session_state.extracted_info.get('recommended_specialty', 'doctor')} "
+                            #     f"in {st.session_state.extracted_info.get('location', 'your area')}.\n\n"
+                            #     f"**Option {st.session_state.current_doctor_index + 1} of {len(st.session_state.doctors)}**\n\n"
+                            #     f"**{doctor_dict.get('name', 'Doctor')}**\n"
+                            #     f"📍 {doctor_dict.get('location', {}).get('address', 'Address not available')}\n"
+                            #     f"📞 {doctor_dict.get('phone', 'Phone not available')}\n\n"
+                            #     f"Say 'I like it' to book this doctor or 'Next option' to see another option."
+                            # )
+                            # # Add doctor details to chat
+                            # st.session_state.messages.append({"role": "assistant", "content": doctor_details})
                             st.session_state.current_doctor = doctor_dict
                             
-                            show_doctor_info(st.session_state.doctor)
-                        else:
-                            response = "I couldn't find a matching doctor. Could you provide more details about what you're looking for?"
-                            st.session_state.messages.append({"role": "assistant", "content": response})
+                            # # Show doctor info card
+                            # show_doctor_info(current_doctor)
                             
-                    # Handle booking confirmation if we're ready to ask for it
+                            # Set flag to listen for user's choice
+                            st.session_state.awaiting_doctor_choice = True
+                            
+                        else:
+                            response = "I couldn't find any matching doctors. Could you provide more details about what you're looking for?"
+                            st.session_state.messages.append({"role": "assistant", "content": response})
+                    
+                    # Handle doctor choice if we're waiting for it
+                    if st.session_state.get('awaiting_doctor_choice'):
+                        # Reset initialization flag
+                        st.session_state.Initialize = False
+                        
+                        # Use a while loop to handle doctor selection
+                        while st.session_state.get('awaiting_doctor_choice', False):
+                            # Show the current doctor's info
+                            current_doctor = st.session_state.doctors[st.session_state.current_doctor_index]
+                            show_doctor_info(current_doctor)
+                            
+                            # Listen for user's response
+                            with st.spinner("Listening for your choice..."):
+                                # Create a 2-second delay with progress indicator
+                                progress_text = "Waiting for taking a look of your option ..."
+                                progress_bar = st.progress(0, text=progress_text)
+                                for i in range(100):
+                                    time.sleep(0.05)  # 2 seconds total
+                                    progress_bar.progress(i + 1, text=progress_text)
+                                progress_bar.empty()
+                                
+                                answer = voice_service.ask_voice(
+                                    "Would you like to book this doctor or see another option?",
+                                    duration=5
+                                )
+                            
+                            if not answer:
+                                continue  # Skip if no answer was provided
+                                
+                            st.session_state.messages.append({"role": "user", "content": answer})
+                            answer_lower = answer.lower()
+                            
+                            # Process user's choice
+                            if "next" in answer_lower or "other" in answer_lower or "option" in answer_lower:
+                                # Show next doctor if available
+                                if st.session_state.current_doctor_index + 1 < len(st.session_state.doctors):
+                                    st.session_state.current_doctor_index += 1
+                                    continue  # Show next doctor
+                                else:
+                                    st.session_state.messages.append({
+                                        "role": "assistant", 
+                                        "content": "I'm sorry, there are no more options available. Please try a different search."
+                                    })
+                                    st.session_state.awaiting_doctor_choice = False
+                                    st.session_state.current_doctor_index = 0
+                                
+                            elif "like" in answer_lower or "book" in answer_lower or "yes" in answer_lower:
+                                # User wants to book this doctor
+                                st.session_state.awaiting_doctor_choice = False
+                                st.session_state.ask_for_booking_confirmation = True
+                                break  # Exit the loop to proceed with booking
+                                
+                            else:
+                                # Unclear response, ask again
+                                st.session_state.messages.append({
+                                    "role": "assistant",
+                                    "content": "I didn't catch that. Please say 'I like it' to book this doctor or 'Next option' to see another option."
+                                })
+                                continue  # Ask the same question again
+                                
+                            st.session_state.Initialize = True
+                            break  # Exit the loop if we reach here
+                        st.session_state.current_doctor = st.session_state.doctors[st.session_state.current_doctor_index]    
+                        
                     if st.session_state.get('ask_for_booking_confirmation'):
                         # Reset the flag first to prevent asking again
                         st.session_state.ask_for_booking_confirmation = False
@@ -148,13 +227,29 @@ def show_main_content(
                             
                             if "yes" in answer.lower():
                                 # Get the doctor details
-                                doctor_dict = st.session_state.get('current_doctor', {})
-                                booking_url = f"https://www.doctolib.de{doctor_dict.get('link', '')}"
-                                confirm_text = f"Great! Please visit the following link to proceed with your booking: {booking_url}"
-                                st.session_state.messages.append({"role": "assistant", "content": confirm_text})
-                                
-                                # Add a clickable link
-                                st.markdown(f"[Click here to book an appointment]({booking_url})", unsafe_allow_html=True)
+                                doctor = st.session_state.get('current_doctor')
+                                if doctor is not None:
+                                    # Use getattr to safely access attributes
+                                    doctor_link = getattr(doctor, 'link', '')
+                                    doctor_name = getattr(doctor, 'name', 'the doctor')
+                                    
+                                    # Construct booking URL
+                                    booking_url = f"https://www.doctolib.de{doctor_link}" if doctor_link else "#"
+                                    confirm_text = f"Great! I'll help you book an appointment with Dr. {doctor_name}. Please visit the following link to proceed with your booking: {booking_url}"
+                                    
+                                    # Add the message and link
+                                    st.session_state.messages.append({"role": "assistant", "content": confirm_text})
+                                    
+                                    # Add a clickable link
+                                    if doctor_link:
+                                        st.markdown(f"[Click here to book an appointment with Dr. {doctor_name}]({booking_url})")
+                                    else:
+                                        st.warning("No booking link available for this doctor.")
+                                else:
+                                    st.session_state.messages.append({
+                                        "role": "assistant",
+                                        "content": "I'm sorry, I couldn't find the doctor's information. Please try searching again."
+                                    })
                             else:
                                 st.session_state.messages.append({
                                     "role": "assistant",
@@ -164,7 +259,7 @@ def show_main_content(
                             # Reset the booking confirmation state
                             st.session_state.awaiting_booking_confirmation = False
                             del st.session_state.current_doctor
-                            
+                            st.session_state.Initialize = True
                             # Rerun to update the UI
                             st.rerun()
                         
@@ -175,9 +270,11 @@ def show_main_content(
                             "role": "assistant",
                             "content": "I couldn't understand your request. Could you please describe your symptoms and location again?"
                         })
+                        st.session_state.Initialize = True
                         st.rerun()
                         
         except Exception as e:
+            print("error!!!!!", {str(e)})
             st.error(f"An error occurred: {str(e)}")
             st.session_state.messages.append({
                 "role": "assistant",
@@ -208,6 +305,8 @@ def extract_doctor_info(transcript: str) -> Dict[str, Any]:
        - recommended_specialty: The most relevant medical specialty (e.g., "dermatologist", "cardiologist", "general practitioner")
        - location: City, district, or place name where the doctor should be located
        - languages_found: List of language codes from the user's input
+       - gender: The preferred gender of the doctor. MUST be one of: null, "male", or "female" (case-sensitive). 
+                 If not specified or unclear, use null. Do not use any other values.
     
     For recommended_specialty, choose from common medical specialties. If the user's description is vague or could apply to multiple specialties,
     recommend seeing a general practitioner first.
@@ -231,22 +330,24 @@ def extract_doctor_info(transcript: str) -> Dict[str, Any]:
     - "tr" (Turkish)
     - "ua" (Ukrainian)
     
-    Return ONLY a JSON object with these exact keys: recommended_specialty, location, languages_found.
+    Return ONLY a JSON object with these exact keys: recommended_specialty, location, languages_found, gender.
     
     Example 1:
-    User: "I have a toothache and need to see someone in Berlin who speaks German and English"
+    User: "I have a toothache and need to see a female doctor in Berlin who speaks German and English"
     {
         "recommended_specialty": "dentist",
         "location": "Berlin",
-        "languages_found": ["de", "gb"]
+        "languages_found": ["de", "gb"],
+        "gender": "female"
     }
     
     Example 2:
-    User: "I've been having chest pain and need a doctor in Paris who speaks French"
+    User: "I've been having chest pain and need a male doctor in Paris who speaks French"
     {
         "recommended_specialty": "cardiologist",
         "location": "Paris",
-        "languages_found": ["fr"]
+        "languages_found": ["fr"],
+        "gender": "male"
     }
     
     Example 3:
@@ -254,7 +355,8 @@ def extract_doctor_info(transcript: str) -> Dict[str, Any]:
     {
         "recommended_specialty": "dermatologist",
         "location": "Madrid",
-        "languages_found": ["es"]
+        "languages_found": ["es"],
+        "gender": null
     }
     """
 
@@ -281,7 +383,12 @@ def extract_doctor_info(transcript: str) -> Dict[str, Any]:
         recommended_specialty = extracted.get("recommended_specialty")
         location = extracted.get("location")
         languages_found = extracted.get("languages_found", [])
+        gender = extracted.get("gender")
         
+        # Validate gender is one of: null, "male", or "female"
+        if gender is not None and gender not in ["male", "female"]:
+            gender = None  # Reset to null if invalid value
+            
         if not recommended_specialty or not location:
             raise ValueError("Missing required fields in response")
             
@@ -294,23 +401,26 @@ def extract_doctor_info(transcript: str) -> Dict[str, Any]:
         "symptom": recommended_specialty,  # Keeping 'symptom' key for backward compatibility
         "recommended_specialty": recommended_specialty,
         "location": location,
-        "languages_found": languages_found
+        "languages_found": languages_found,
+        "gender": gender  # Will be one of: null, "male", or "female"
     }
 
-def find_doctor(
+def find_doctors(
     doctor_service: DoctorService,
     extracted_info: Dict[str, Any],
-    debug_mode: bool = False
-) -> Optional[Dict[str, Any]]:
-    """Find a doctor based on extracted information.
+    debug_mode: bool = False,
+    max_results: int = 5
+) -> List[Dict[str, Any]]:
+    """Find multiple doctors based on extracted information.
     
     Args:
         doctor_service: Instance of DoctorService
         extracted_info: Dictionary containing extracted information
         debug_mode: Whether to show debug information
+        max_results: Maximum number of doctors to return (default: 5)
         
     Returns:
-        Doctor object if found, None otherwise. Also returns error information if debug_mode is True.
+        List of Doctor objects if found, empty list otherwise.
     """
     error_info = {}
     
@@ -382,14 +492,14 @@ def find_doctor(
             else:
                 print("❌ No doctors found matching the criteria")
         
-        # 6. Return the first doctor if available
+        # 6. Return up to max_results doctors
         if doctors:
-            doctor_data = doctors[0].to_dict() if hasattr(doctors[0], 'to_dict') else doctors[0]
             if debug_mode:
-                print("👨‍⚕️ Selected doctor:", json.dumps(doctor_data, indent=2))
-            return doctor_data
+                print(f"👨‍⚕️ Found {len(doctors)} doctors")
+            # Return up to max_results doctors
+            return doctors[:max_results]
             
-        return None
+        return []
         
     except ValueError as ve:
         error_msg = f"❌ {str(ve)}"
@@ -402,7 +512,7 @@ def find_doctor(
             }
             print(f"❌ Validation error: {ve}")
         st.error(error_msg)
-        return None
+        return []
         
     except Exception as e:
         import traceback
@@ -416,7 +526,7 @@ def find_doctor(
             }
             print(f"❌ Unexpected error: {str(e)}\n{traceback.format_exc()}")
         st.error(error_msg)
-        return None
+        return []
         
     finally:
         if debug_mode and error_info:

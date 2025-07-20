@@ -1,8 +1,8 @@
-"""Configuration settings for the Doctor Booking Assistant."""
+"""Configuration settings for the MediMatch Voice."""
 from pathlib import Path
 
 # Application settings
-APP_NAME = "Doctor Booking Assistant"
+APP_NAME = "MediMatch Voice"
 APP_ICON = "🏥"
 DEFAULT_RECORDING_DURATION = 5
 

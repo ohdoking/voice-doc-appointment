@@ -17,6 +17,29 @@ def show_sidebar() -> Tuple[int, bool]:
         - debug_mode: Whether debug mode is enabled
     """
     with st.sidebar:
+        # Add MediMatch Voice title with custom styling
+        st.markdown("""
+        <style>
+            .app-title {
+                font-size: 1.8rem;
+                font-weight: 700;
+                color: #4e8bfd;
+                margin-bottom: 1.5rem;
+                text-align: center;
+            }
+            .app-subtitle {
+                font-size: 1rem;
+                color: #6c757d;
+                text-align: center;
+                margin-top: -1rem;
+                margin-bottom: 1.5rem;
+            }
+        </style>
+        <div class="app-title">MediMatch Voice</div>
+        <div class="app-subtitle">Your Voice-Powered Healthcare Assistant</div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("---")
         st.header("Settings")
         
         # Recording settings
@@ -46,6 +69,6 @@ def show_sidebar() -> Tuple[int, bool]:
         
         # Version information
         st.markdown("---")
-        st.caption("Doctor Booking Assistant v1.0.0")
+        st.caption("MediMatch Voice v0.0.1")
     
     return recording_duration, debug_mode
