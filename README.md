@@ -17,6 +17,10 @@ A voice-enabled web application that helps users find and book doctor appointmen
 - **Chat History**: Review all suggested doctors in the conversation history
 - **Responsive Design**: Works on both desktop and mobile devices
 
+## 📊 Workflow
+
+![Application Workflow](workflow.jpg)
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -30,30 +34,52 @@ A voice-enabled web application that helps users find and book doctor appointmen
 1. Clone the repository:
    ```bash
    git clone https://github.com/yourusername/voice-doc-appointment.git
-   cd voice-doc-appointment
+   cd voice-doct-appointment
    ```
 
-2. Create and activate a virtual environment (recommended):
+2. Install Poetry if you haven't already:
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   curl -sSL https://install.python-poetry.org | python3 -
+   ```
+   Or on Windows (PowerShell):
+   ```powershell
+   (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
    ```
 
-3. Install the required dependencies:
+3. Install project dependencies using Poetry:
    ```bash
-   pip install -r requirements.txt
+   poetry install
    ```
 
-4. Create a `.env` file in the project root and add your OpenAI API key:
+4. Activate the virtual environment:
+   ```bash
+   poetry shell
    ```
+
+5. Create a `.env` file in the project root and add your API keys:
+   ```env
    OPENAI_API_KEY=your_openai_api_key_here
+   ELEVENLABS_VOICE_ID=your_elevenlabs_voice_id_here
+   ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
    ```
+
+### Development
+
+- To add new dependencies:
+  ```bash
+  poetry add package-name
+  ```
+  
+- To run the application:
+  ```bash
+  poetry run streamlit run src/voice_doctor_appointment/app/main.py
+  ```
 
 ## 🏃‍♂️ Running the Application
 
 1. Start the Streamlit application:
    ```bash
-   streamlit run src/voice_doctor_appointment/app/main.py
+   poetry run streamlit run src/voice_doctor_appointment/app/main.py
    ```
 
 2. Open your web browser and navigate to `http://localhost:8501`
