@@ -270,7 +270,7 @@ def show_doctor_info(doctor: Optional[Doctor], is_selected: bool = False) -> Non
                 )
                 st.image(
                     profile_image,
-                    width=150,
+                    width=250,
                     output_format='PNG'
                 )
             
