@@ -496,10 +496,15 @@ def find_doctors(
         if debug_mode:
             print(f"🔎 Searching for {specialty['slug']} doctors in {location_name}...")
             
+        # Get gender preference if specified
+        gender = extracted_info.get('gender')
+        
+        # Search for doctors with optional gender filter
         doctors = doctor_service.search_doctors(
             place=place_info,
             specialty=specialty['slug'],
-            languages=extracted_info.get('languages_found', [])
+            languages=extracted_info.get('languages_found', []),
+            gender=gender
         )
         
         if debug_mode:

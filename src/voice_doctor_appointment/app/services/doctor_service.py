@@ -20,17 +20,23 @@ class DoctorService:
         place: Dict,
         specialty: str,
         languages: List[str],
-        insurance_sector: str = "public"
+        insurance_sector: str = "public",
+        gender: Optional[str] = None
     ) -> List[Doctor]:
         """Search for doctors based on location, specialty, and languages."""
         url = f"{DOCTOLIB_BASE_URL}/phs_proxy/raw?page=0"
         
+        # Prepare the base payload
         payload = {
             "keyword": specialty,
             "location": {"place": place},
             "filters": {"insuranceSector": insurance_sector},
             "languages": languages,
         }
+        
+        # Add gender filter if specified
+        if gender and gender in ["male", "female"]:
+            payload["filters"]["gender"] = gender
         
         print("phs_proxy payload", payload)
         try:
@@ -50,6 +56,9 @@ class DoctorService:
             for doc in doctors:
                 # Skip telehealth providers
                 if doc.get("onlineBooking", {}).get("telehealth", False):
+                    continue
+
+                if doc.get("gender") != gender:
                     continue
                     
                 # Add profile image URL if cloudinaryPublicId exists
