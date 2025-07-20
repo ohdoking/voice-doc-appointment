@@ -223,16 +223,30 @@ def generate_mock_available_dates() -> list:
             })
     return dates
 
-def show_doctor_info(doctor: Optional[Doctor]) -> None:
+def show_doctor_info(doctor: Optional[Doctor], is_selected: bool = False) -> None:
     """Display doctor information using native Streamlit components.
     
     Args:
         doctor: Doctor object or dictionary to display, or None to show a placeholder
+        is_selected: Whether this is the currently selected doctor
     """
+    colors = get_theme_colors()
+    
     if not doctor:
         st.warning("No doctor information available.")
         return
-    
+        
+    # Convert Doctor object to dict if needed
+    if hasattr(doctor, 'to_dict'):
+        doctor_dict = doctor.to_dict()
+    else:
+        doctor_dict = doctor
+        
+    # Add selected styling if this is the selected doctor
+    if is_selected:
+        st.markdown("### ✅ Selected Doctor")
+        st.markdown("---")
+        
     # Generate mock available dates
     available_dates = generate_mock_available_dates()
     

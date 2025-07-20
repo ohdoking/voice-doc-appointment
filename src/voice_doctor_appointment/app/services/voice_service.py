@@ -85,6 +85,44 @@ class VoiceService:
             output_format="mp3_44100_128"
         )
         play(audio)
+        
+    def extract_yes_no(self, text: str) -> Optional[bool]:
+        """Extract yes/no from text using ChatGPT.
+        
+        Args:
+            text: Input text to analyze
+            
+        Returns:
+            bool: True for yes, False for no, None if uncertain
+        """
+        if not text or not text.strip():
+            return None
+            
+        try:
+            from openai import OpenAI
+            client = OpenAI()
+            
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant that determines if a response is affirmative (yes) or negative (no). Only respond with 'yes', 'no', or 'uncertain'."},
+                    {"role": "user", "content": f"Does the following text indicate a 'yes' or 'no' response? If uncertain, respond with 'uncertain'. Text: {text}"}
+                ],
+                max_tokens=10,
+                temperature=0.1
+            )
+            
+            answer = response.choices[0].message.content.strip().lower()
+            
+            if 'yes' in answer:
+                return True
+            elif 'no' in answer:
+                return False
+            return None
+            
+        except Exception as e:
+            print(f"Error in extract_yes_no: {e}")
+            return None
     
     def speech_to_text(self, audio_file: str) -> Optional[str]:
         """Convert speech to text.

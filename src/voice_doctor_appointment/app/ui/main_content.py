@@ -28,15 +28,21 @@ load_dotenv(env_path, override=True)
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-def display_chat_message(role: str, content: str) -> None:
+def display_chat_message(role: str, content: Any) -> None:
     """Display a chat message in the Streamlit app.
     
     Args:
-        role: Either 'user' or 'assistant'
-        content: The message content
+        role: Either 'user' or 'assistant' or 'doctor_card'
+        content: The message content (string or Doctor object)
     """
-    with st.chat_message(role):
-        st.markdown(content)
+    if role == 'doctor_card':
+        # Special handling for doctor cards in chat
+        with st.chat_message('assistant'):
+            show_doctor_info(content)
+    else:
+        # Regular text message
+        with st.chat_message(role):
+            st.markdown(content)
 
 def show_main_content(
     voice_service: VoiceService,
@@ -68,9 +74,9 @@ def show_main_content(
     if 'extracted_info' not in st.session_state:
         st.session_state.extracted_info = None
     
-    # Display doctor information in a persistent container if available
+    # Display the selected doctor information in a persistent container if available
     if 'doctor' in st.session_state and st.session_state.doctor:
-        show_doctor_info(st.session_state.doctor)
+        show_doctor_info(st.session_state.doctor, is_selected=True)
         st.markdown("---")
     
     # Display chat messages
@@ -84,14 +90,14 @@ def show_main_content(
         
         try:
             # Record voice input
-            st.session_state.transcript = voice_service.ask_voice(
-                "Please describe your symptoms and tell me your location.",
-                duration=recording_duration
-            )
+            # st.session_state.transcript = voice_service.ask_voice(
+            #     "Please describe your symptoms and tell me your location.",
+            #     duration=recording_duration
+            # )
 
-            # st.session_state.transcript = """
-            # i have allergie from last night, i live in berlin pankow, i only can speak english. and i have public insurance. and i want male doctor.
-            # """
+            st.session_state.transcript = """
+            i have allergie from last night, i live in berlin pankow, i only can speak english. and i have public insurance. and i want male doctor.
+            """
             
             if st.session_state.transcript:
                 # Add user message to chat
@@ -137,6 +143,13 @@ def show_main_content(
                             
                             # # Show doctor info card
                             # show_doctor_info(current_doctor)
+                            
+                            # Add doctor card to chat history
+                            st.session_state.messages.append({
+                                "role": "doctor_card", 
+                                "content": current_doctor,
+                                "doctor_index": st.session_state.current_doctor_index
+                            })
                             
                             # Set flag to listen for user's choice
                             st.session_state.awaiting_doctor_choice = True
@@ -225,7 +238,10 @@ def show_main_content(
                         if answer:
                             st.session_state.messages.append({"role": "user", "content": answer})
                             
-                            if "yes" in answer.lower():
+                            # Use extract_yes_no for better voice response handling
+                            confirmation = voice_service.extract_yes_no(answer)
+                            
+                            if confirmation is True:
                                 # Get the doctor details
                                 doctor = st.session_state.get('current_doctor')
                                 if doctor is not None:
