@@ -25,9 +25,10 @@ A voice-enabled web application that helps users find and book doctor appointmen
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.12+
 - pip (Python package manager)
 - OpenAI API key (for voice processing)
+- ElevenLabs API key (for voice processing)
 
 ### Installation
 
@@ -109,6 +110,8 @@ voice-doc-appointment/
 You can customize the application by modifying the following environment variables in your `.env` file:
 
 - `OPENAI_API_KEY`: Your OpenAI API key for voice processing
+- `ELEVENLABS_VOICE_ID`: Your ElevenLabs voice ID for voice processing
+- `ELEVENLABS_API_KEY`: Your ElevenLabs API key for voice processing
 - `DOCTOLIB_BASE_URL`: Base URL for doctor search API (default: https://www.doctolib.de)
 
 ## 🧪 Running Tests
